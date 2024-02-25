@@ -24,6 +24,7 @@ export default function Mappage() {
           latitude: 10.817971101909635,
           longitude: 77.01847931145132,
           latitudeDelta: 0.7,
+          longitudeDelta: 0.7,
         }}
         mapType={
           mapType === 'standard'

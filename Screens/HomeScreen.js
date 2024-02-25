@@ -7,8 +7,8 @@ import { useNavigation } from '@react-navigation/native';
 const HomeScreen = () => {
   const navigation = useNavigation();
 
-  const navigateToMappage = () => {
-    navigation.navigate('Mappage');
+  const navigateToMapScreen = () => {
+    navigation.navigate('MapScreen');
   };
   const navigateToScreen3 = () => {
     navigation.navigate('Screen3');
@@ -19,10 +19,7 @@ const HomeScreen = () => {
   
       <View style={styles.container}>
 
-        <Button  title="MAP" onPress={navigateToMappage}/>
-      
-    
-
+        <Button  title="MAP" onPress={navigateToMapScreen}/>
       <Button  title="Go to Screen3" onPress={navigateToScreen3}  />
       </View>
       
@@ -34,7 +31,7 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: 'yellow',
     justifyContent:'center',
     alignItems: 'center',
    

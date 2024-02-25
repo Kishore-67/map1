@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from './config';
 import { ref, onValue } from 'firebase/database';
+import MapViewDirections from 'react-native-maps-directions'; // Import MapViewDirections
 
 export default function Mappage() {
   const [mapType, setMapType] = useState('standard');
   const [markerLocations, setMarkerLocations] = useState([]);
   const [selectedGPS, setSelectedGPS] = useState(null);
+  const [showRoute, setShowRoute] = useState(false);
 
   useEffect(() => {
     const starCountRef = ref(db, 'main/');
@@ -25,7 +27,13 @@ export default function Mappage() {
   };
 
   const handleGPSMarkerPress = (gpsKey) => {
-    setSelectedGPS(gpsKey);
+    if (selectedGPS === gpsKey) {
+      setSelectedGPS(null);
+      setShowRoute(false);
+    } else {
+      setSelectedGPS(gpsKey);
+      setShowRoute(true);
+    }
   };
 
   return (
@@ -42,51 +50,54 @@ export default function Mappage() {
         mapType={mapType}
       >
         {Object.entries(markerLocations).map(([gpsKey, gpsData]) => (
-          <React.Fragment key={gpsKey}>
-            <Marker
-              coordinate={{
-                latitude: parseFloat(gpsData.latitude),
-                longitude: parseFloat(gpsData.longitude),
-              }}
-              title={`GPS ${gpsKey}`}
-              onPress={() => handleGPSMarkerPress(gpsKey)}
-            />
-            {selectedGPS === gpsKey && gpsData.Destination && Object.keys(gpsData.Destination).length > 0 && (
-              <>
-                <Polyline
-                  coordinates={[
-                    { latitude: parseFloat(gpsData.latitude), longitude: parseFloat(gpsData.longitude) },
-                    { latitude: parseFloat(gpsData.Destination.stop1.lat), longitude: parseFloat(gpsData.Destination.stop1.lon) },
-                    { latitude: parseFloat(gpsData.Destination.stop2.lat), longitude: parseFloat(gpsData.Destination.stop2.lon) },
-                    { latitude: parseFloat(gpsData.Destination.stop3.lat), longitude: parseFloat(gpsData.Destination.stop3.lon) },
-                  ]}
-                  strokeWidth={4}
-                  strokeColor="blue"
-                  geodesic={true}
-                  lineDashPattern={[5]}
-                />
-                {Object.entries(gpsData.Destination).map(([stopKey, stopData], index) => (
-                  <Marker
-                    key={index}
-                    coordinate={{
-                      latitude: parseFloat(stopData.lat),
-                      longitude: parseFloat(stopData.lon),
-                    }}
-                    title={`Stop ${index + 1}`}
-                    // Add a custom icon for temporary markers
-                    icon={() => (
-                      <Ionicons
-                        name="ios-pin"
-                        size={24}
-                        color="red"
-                      />
-                    )}
-                  />
-                ))}
-              </>
-            )}
-          </React.Fragment>
+          <Marker
+            key={gpsKey}
+            coordinate={{
+              latitude: parseFloat(gpsData.latitude),
+              longitude: parseFloat(gpsData.longitude),
+            }}
+            title={`${gpsKey}`}
+            onPress={() => handleGPSMarkerPress(gpsKey)}
+          />
         ))}
+        {selectedGPS && markerLocations[selectedGPS] && showRoute && (
+          <MapViewDirections
+            origin={{
+              latitude: parseFloat(markerLocations[selectedGPS].latitude),
+              longitude: parseFloat(markerLocations[selectedGPS].longitude),
+            }}
+            waypoints={Object.values(markerLocations[selectedGPS].Destination).map(stop => ({
+              latitude: parseFloat(stop.lat),
+              longitude: parseFloat(stop.lon),
+            }))}
+            destination={{
+              latitude: parseFloat(markerLocations[selectedGPS].Destination.stop3.lat),
+              longitude: parseFloat(markerLocations[selectedGPS].Destination.stop3.lon),
+            }}
+            apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'} // Replace with your actual API key
+            strokeWidth={4}
+            strokeColor="blue"
+            mode="DRIVING" // Specify driving mode in uppercase
+          />
+        )}
+        {/* Display marker for each stop */}
+        {selectedGPS &&
+          markerLocations[selectedGPS] &&
+          showRoute &&
+          Object.values(markerLocations[selectedGPS].Destination).map((stop, index) => (
+            <Marker
+              key={index}
+              coordinate={{
+                latitude: parseFloat(stop.lat),
+                longitude: parseFloat(stop.lon),
+              }}
+              title={`Stop ${index + 1}`}
+            >
+              <View style={styles.marker}>
+                <Text style={styles.markerText}>{`Stop ${index + 1}`}</Text>
+              </View>
+            </Marker>
+          ))}
       </MapView>
 
       <View style={styles.mapTypeContainer}>
@@ -134,6 +145,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 8,
     padding: 8,
-    elevation: 4,
-  },
+    elevation: 4,
+  },
+  marker: {
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    padding: 5,
+    borderRadius: 5,
+  },
+  markerText: {
+    fontWeight: 'bold',
+  },
 });

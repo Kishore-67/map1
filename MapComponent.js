@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from './config';
@@ -8,22 +8,24 @@ import { ref, onValue } from 'firebase/database';
 export default function Mappage() {
   const [mapType, setMapType] = useState('standard');
   const [markerLocations, setMarkerLocations] = useState([]);
+  const [selectedGPS, setSelectedGPS] = useState(null);
 
   useEffect(() => {
     const starCountRef = ref(db, 'main/');
     onValue(starCountRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const validLocations = Object.values(data).filter((item) => (
-          item.latitude !== undefined && item.longitude !== undefined && !isNaN(parseFloat(item.latitude)) && !isNaN(parseFloat(item.longitude))
-        ));
-        setMarkerLocations(validLocations);
+        setMarkerLocations(data);
       }
     });
   }, []);
 
   const changeMapType = (type) => {
     setMapType(type);
+  };
+
+  const handleGPSMarkerPress = (gpsKey) => {
+    setSelectedGPS(gpsKey);
   };
 
   return (
@@ -39,16 +41,51 @@ export default function Mappage() {
         }}
         mapType={mapType}
       >
-        {markerLocations.map((location, index) => (
-          <Marker
-            key={index}
-            coordinate={{
-              latitude: parseFloat(location.latitude),
-              longitude: parseFloat(location.longitude),
-            }}
-            // title={Marker ${index + 1}}
-            // description={Description ${index + 1}}
-          />
+        {Object.entries(markerLocations).map(([gpsKey, gpsData]) => (
+          <React.Fragment key={gpsKey}>
+            <Marker
+              coordinate={{
+                latitude: parseFloat(gpsData.latitude),
+                longitude: parseFloat(gpsData.longitude),
+              }}
+              title={`GPS ${gpsKey}`}
+              onPress={() => handleGPSMarkerPress(gpsKey)}
+            />
+            {selectedGPS === gpsKey && gpsData.Destination && Object.keys(gpsData.Destination).length > 0 && (
+              <>
+                <Polyline
+                  coordinates={[
+                    { latitude: parseFloat(gpsData.latitude), longitude: parseFloat(gpsData.longitude) },
+                    { latitude: parseFloat(gpsData.Destination.stop1.lat), longitude: parseFloat(gpsData.Destination.stop1.lon) },
+                    { latitude: parseFloat(gpsData.Destination.stop2.lat), longitude: parseFloat(gpsData.Destination.stop2.lon) },
+                    { latitude: parseFloat(gpsData.Destination.stop3.lat), longitude: parseFloat(gpsData.Destination.stop3.lon) },
+                  ]}
+                  strokeWidth={4}
+                  strokeColor="blue"
+                  geodesic={true}
+                  lineDashPattern={[5]}
+                />
+                {Object.entries(gpsData.Destination).map(([stopKey, stopData], index) => (
+                  <Marker
+                    key={index}
+                    coordinate={{
+                      latitude: parseFloat(stopData.lat),
+                      longitude: parseFloat(stopData.lon),
+                    }}
+                    title={`Stop ${index + 1}`}
+                    // Add a custom icon for temporary markers
+                    icon={() => (
+                      <Ionicons
+                        name="ios-pin"
+                        size={24}
+                        color="red"
+                      />
+                    )}
+                  />
+                ))}
+              </>
+            )}
+          </React.Fragment>
         ))}
       </MapView>
 
@@ -97,6 +134,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 8,
     padding: 8,
-    elevation: 4,
-  },
+    elevation: 4,
+  },
 });

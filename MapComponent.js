@@ -77,7 +77,13 @@ export default function Mappage() {
             apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'} // Replace with your actual API key
             strokeWidth={4}
             strokeColor="blue"
-            mode="DRIVING" // Specify driving mode in uppercase
+            mode={"DRIVING"} 
+            precision={'high'}
+            resetOnChange={false}
+            optimizeWaypoints={true}
+      
+
+// Specify driving mode in uppercase
           />
         )}
         {/* Display marker for each stop */}
@@ -90,8 +96,10 @@ export default function Mappage() {
               coordinate={{
                 latitude: parseFloat(stop.lat),
                 longitude: parseFloat(stop.lon),
+
               }}
               title={`Stop ${index + 1}`}
+              pinColor='green'
             >
               {/* <View style={styles.marker}>
                 <Text style={styles.markerText}>{`Stop ${index + 1}`}</Text>

@@ -93,9 +93,9 @@ export default function Mappage() {
               }}
               title={`Stop ${index + 1}`}
             >
-              <View style={styles.marker}>
+              {/* <View style={styles.marker}>
                 <Text style={styles.markerText}>{`Stop ${index + 1}`}</Text>
-              </View>
+              </View> */}
             </Marker>
           ))}
       </MapView>

@@ -44,8 +44,8 @@ export default function Mappage() {
         initialRegion={{
           latitude: 10.817777777777774,
           longitude: 77.01847931145132,
-          latitudeDelta: 0.7,
-          longitudeDelta: 0.7,
+          latitudeDelta: 0.9,
+          longitudeDelta: 0.9,
         }}
         mapType={mapType}
       >

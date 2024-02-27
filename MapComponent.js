@@ -95,7 +95,7 @@ export default function Mappage() {
                 latitude: parseFloat(stop.lat),
                 longitude: parseFloat(stop.lon),
               }}
-              pinColor='purple'
+              pinColor='yellow'
               title={`Stop ${index + 1}`}
             >
               {/* <View style={styles.marker}>

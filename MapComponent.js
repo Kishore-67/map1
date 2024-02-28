@@ -4,13 +4,26 @@ import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from './config';
 import { ref, onValue } from 'firebase/database';
-import MapViewDirections from 'react-native-maps-directions'; // Import MapViewDirections
+import MapViewDirections from 'react-native-maps-directions';
+
+const StopMarker = ({ coordinate, title, index }) => (
+  <Marker
+    coordinate={coordinate}
+    title={title}
+    pinColor='green'
+  >
+    {/* <View style={styles.marker}>
+      <Text style={styles.markerText}>{`Stop ${index}`}</Text>
+    </View> */}
+  </Marker>
+);
 
 export default function Mappage() {
   const [mapType, setMapType] = useState('standard');
   const [markerLocations, setMarkerLocations] = useState([]);
   const [selectedGPS, setSelectedGPS] = useState(null);
   const [showRoute, setShowRoute] = useState(false);
+  const [showSlidingWindow, setShowSlidingWindow] = useState(false);
 
   useEffect(() => {
     const starCountRef = ref(db, 'main/');
@@ -30,10 +43,16 @@ export default function Mappage() {
     if (selectedGPS === gpsKey) {
       setSelectedGPS(null);
       setShowRoute(false);
+      setShowSlidingWindow(false); // Hide sliding window when GPS marker is deselected
     } else {
       setSelectedGPS(gpsKey);
       setShowRoute(true);
+      setShowSlidingWindow(true); // Show sliding window when GPS marker is selected
     }
+  };
+
+  const toggleSlidingWindow = () => {
+    setShowSlidingWindow(!showSlidingWindow);
   };
 
   return (
@@ -60,45 +79,55 @@ export default function Mappage() {
             onPress={() => handleGPSMarkerPress(gpsKey)}
           />
         ))}
-        {selectedGPS && markerLocations[selectedGPS] && showRoute && (
-          <MapViewDirections
-            origin={{
-              latitude: parseFloat(markerLocations[selectedGPS].latitude),
-              longitude: parseFloat(markerLocations[selectedGPS].longitude),
-            }}
-            waypoints={Object.values(markerLocations[selectedGPS].Destination).map(stop => ({
-              latitude: parseFloat(stop.lat),
-              longitude: parseFloat(stop.lon),
-            }))}
-            destination={{
-              latitude: parseFloat(markerLocations[selectedGPS].Destination.stop3.lat),
-              longitude: parseFloat(markerLocations[selectedGPS].Destination.stop3.lon),
-            }}
-            apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'} // Replace with your actual API key
-            strokeWidth={4}
-            strokeColor="blue"
-            mode="DRIVING" // Specify driving mode in uppercase
-          />
-        )}
-        {/* Display marker for each stop */}
         {selectedGPS &&
           markerLocations[selectedGPS] &&
           showRoute &&
           Object.values(markerLocations[selectedGPS].Destination).map((stop, index) => (
-            <Marker
+            <StopMarker
               key={index}
               coordinate={{
                 latitude: parseFloat(stop.lat),
                 longitude: parseFloat(stop.lon),
               }}
               title={`Stop ${index + 1}`}
-            >
-              {/* <View style={styles.marker}>
-                <Text style={styles.markerText}>{`Stop ${index + 1}`}</Text>
-              </View> */}
-            </Marker>
+              // index={index + 1}
+              
+            />
           ))}
+        {selectedGPS && markerLocations[selectedGPS] && showRoute && (
+          <MapViewDirections
+            origin={{
+              latitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lat),
+              longitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lon),
+            }}
+            waypoints={Object.values(markerLocations[selectedGPS].Destination).map(stop => ({
+              latitude: parseFloat(stop.lat),
+              longitude: parseFloat(stop.lon),
+            }))}
+            destination={{
+              latitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lat),
+              longitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lon),
+            }}
+            apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'}
+            strokeWidth={4}
+            strokeColor="blue"
+            mode={"DRIVING"} 
+            precision={'high'}
+            resetOnChange={false}
+            optimizeWaypoints={true}
+          />
+        )}
       </MapView>
+
+      {showSlidingWindow && (
+  <View style={styles.slidingWindow}>
+    <TouchableOpacity onPress={toggleSlidingWindow} style={styles.exitButton}>
+      <Ionicons name="close-circle" size={24} color="black" />
+    </TouchableOpacity>
+    <Text style={styles.slidingWindowText}>This is the sliding window content.</Text>
+    {/* Add your custom content here */}
+  </View>
+)}
 
       <View style={styles.mapTypeContainer}>
         <TouchableOpacity onPress={() => changeMapType('standard')}>
@@ -147,6 +176,28 @@ const styles = StyleSheet.create({
     padding: 8,
     elevation: 4,
   },
+  slidingWindow: {
+    position: 'absolute',
+    bottom: 6,
+    left: 10,
+    right: 10,
+    backgroundColor: 'white',
+    padding: 35,
+    borderTopLeftRadius: 23,
+    borderTopRightRadius: 23,
+    borderBottomLeftRadius:23,
+    borderBottomRightRadius:23,
+  },
+  slidingWindowText: {
+    fontSize: 20, // Adjust font size to increase size
+    fontWeight: 'bold',
+    marginBottom: 200, // Adjust margin bottom for spacing
+  },
+  exitButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
   marker: {
     backgroundColor: 'rgba(255,255,255,0.8)',
     padding: 5,
@@ -154,5 +205,5 @@ const styles = StyleSheet.create({
   },
   markerText: {
     fontWeight: 'bold',
-  },
+},
 });

@@ -5,17 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { db } from './config';
 import { ref, onValue } from 'firebase/database';
 import MapViewDirections from 'react-native-maps-directions';
+import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 
 const StopMarker = ({ coordinate, title, index }) => (
   <Marker
     coordinate={coordinate}
     title={title}
     pinColor='green'
-  >
-    {/* <View style={styles.marker}>
-      <Text style={styles.markerText}>{`Stop ${index}`}</Text>
-    </View> */}
-  </Marker>
+  />
 );
 
 export default function Mappage() {
@@ -24,6 +21,7 @@ export default function Mappage() {
   const [selectedGPS, setSelectedGPS] = useState(null);
   const [showRoute, setShowRoute] = useState(false);
   const [showSlidingWindow, setShowSlidingWindow] = useState(false);
+  const [stopDistances, setStopDistances] = useState([]);
 
   useEffect(() => {
     const starCountRef = ref(db, 'main/');
@@ -39,15 +37,83 @@ export default function Mappage() {
     setMapType(type);
   };
 
-  const handleGPSMarkerPress = (gpsKey) => {
+  const handleGPSMarkerPress = async (gpsKey) => {
     if (selectedGPS === gpsKey) {
       setSelectedGPS(null);
       setShowRoute(false);
-      setShowSlidingWindow(false); // Hide sliding window when GPS marker is deselected
+      setShowSlidingWindow(false);
+      setStopDistances([]);
     } else {
       setSelectedGPS(gpsKey);
       setShowRoute(true);
-      setShowSlidingWindow(true); // Show sliding window when GPS marker is selected
+      setShowSlidingWindow(true);
+      await calculateDistances(gpsKey);
+    }
+  };
+
+  const calculateDistances = async (gpsKey) => {
+    const selectedGPSData = markerLocations[gpsKey];
+    const waypoints = Object.values(selectedGPSData.Destination).map(stop => ({
+      latitude: parseFloat(stop.lat),
+      longitude: parseFloat(stop.lon),
+    }));
+
+    const distances = [];
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const start = waypoints[i];
+      const end = waypoints[i + 1];
+      const directions = await getDirections(start, end, []);
+
+      if (directions) {
+        distances.push({
+          stopIndex: i + 1,
+          name: `Stop ${i + 1}`,
+          distance: directions.distance.toFixed(2),
+          duration: formatDuration(directions.duration),
+        });
+      }
+    }
+
+    setStopDistances(distances);
+  };
+
+  const getDirections = async (origin, destination, waypoints) => {
+    const apiKey = 'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU';
+    const apiUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&waypoints=${waypoints
+      .map((waypoint) => `${waypoint.latitude},${waypoint.longitude}`)
+      .join('|')}&key=${apiKey}`;
+
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.routes.length > 0) {
+        const route = data.routes[0];
+        const distance = route.legs.reduce((acc, leg) => acc + leg.distance.value, 0);
+        const duration = route.legs.reduce((acc, leg) => acc + leg.duration.value, 0);
+
+        return {
+          distance: distance / 1000, // Convert meters to kilometers
+          duration: duration / 3600, // Convert seconds to hours
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching directions:', error);
+    }
+
+    return null;
+  };
+
+  const formatDuration = (duration) => {
+    const hours = Math.floor(duration);
+    const minutes = Math.floor((duration % 1) * 60);
+
+    if (hours > 0 && minutes > 0) {
+      return `${hours} hour ${minutes} minutes`;
+    } else if (hours > 0) {
+      return `${hours} hour`;
+    } else {
+      return `${minutes} minutes`;
     }
   };
 
@@ -75,7 +141,7 @@ export default function Mappage() {
               latitude: parseFloat(gpsData.latitude),
               longitude: parseFloat(gpsData.longitude),
             }}
-            title={`${gpsKey}`}
+            title={gpsKey}
             onPress={() => handleGPSMarkerPress(gpsKey)}
           />
         ))}
@@ -90,8 +156,6 @@ export default function Mappage() {
                 longitude: parseFloat(stop.lon),
               }}
               title={`Stop ${index + 1}`}
-              // index={index + 1}
-              
             />
           ))}
         {selectedGPS && markerLocations[selectedGPS] && showRoute && (
@@ -111,7 +175,7 @@ export default function Mappage() {
             apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'}
             strokeWidth={4}
             strokeColor="blue"
-            mode={"DRIVING"} 
+            mode={"DRIVING"}
             precision={'high'}
             resetOnChange={false}
             optimizeWaypoints={true}
@@ -119,15 +183,23 @@ export default function Mappage() {
         )}
       </MapView>
 
-      {showSlidingWindow && (
-  <View style={styles.slidingWindow}>
-    <TouchableOpacity onPress={toggleSlidingWindow} style={styles.exitButton}>
-      <Ionicons name="close-circle" size={24} color="black" />
-    </TouchableOpacity>
-    <Text style={styles.slidingWindowText}>This is the sliding window content.</Text>
-    {/* Add your custom content here */}
-  </View>
-)}
+      {showSlidingWindow && stopDistances.length > 0 && (
+        <View style={styles.slidingWindow}>
+          <TouchableOpacity onPress={toggleSlidingWindow} style={styles.exitButton}>
+            <Ionicons name="close-circle" size={24} color="black" />
+          </TouchableOpacity>
+          <ProgressSteps style={styles.verticalProgress}>
+            {stopDistances.map((stop, index) => (
+              <ProgressStep key={index} label={stop.name}>
+                <View style={styles.verticalProgressContent}>
+                  <Text>Distance: {stop.distance} km</Text>
+                  <Text>Duration: {stop.duration}</Text>
+                </View>
+              </ProgressStep>
+            ))}
+          </ProgressSteps>
+        </View>
+      )}
 
       <View style={styles.mapTypeContainer}>
         <TouchableOpacity onPress={() => changeMapType('standard')}>
@@ -183,15 +255,18 @@ const styles = StyleSheet.create({
     right: 10,
     backgroundColor: 'white',
     padding: 35,
-    borderTopLeftRadius: 23,
-    borderTopRightRadius: 23,
-    borderBottomLeftRadius:23,
-    borderBottomRightRadius:23,
+    borderRadius: 23,
+    maxHeight: 300,
+    overflow: 'scroll',
   },
-  slidingWindowText: {
-    fontSize: 20, // Adjust font size to increase size
-    fontWeight: 'bold',
-    marginBottom: 200, // Adjust margin bottom for spacing
+  verticalProgress: {
+    flexDirection: 'column',
+    flexGrow: 0,
+  },
+  verticalProgressContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
   exitButton: {
     position: 'absolute',
@@ -205,5 +280,5 @@ const styles = StyleSheet.create({
   },
   markerText: {
     fontWeight: 'bold',
-},
+  },
 });

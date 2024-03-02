@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { db } from './config';
 import { ref, onValue } from 'firebase/database';
 import MapViewDirections from 'react-native-maps-directions';
-import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
+import StepIndicator from 'react-native-step-indicator';
 
 const StopMarker = ({ coordinate, title, index }) => (
   <Marker
@@ -188,16 +188,29 @@ export default function Mappage() {
           <TouchableOpacity onPress={toggleSlidingWindow} style={styles.exitButton}>
             <Ionicons name="close-circle" size={24} color="black" />
           </TouchableOpacity>
-          <ProgressSteps style={styles.verticalProgress}>
-            {stopDistances.map((stop, index) => (
-              <ProgressStep key={index} label={stop.name}>
-                <View style={styles.verticalProgressContent}>
+          <View style={styles.stepsContainer}>
+            <StepIndicator
+              customStyles={customStyles}
+              currentPosition={0}
+              labels={stopDistances.map((stop) => stop.name)}
+              stepCount={stopDistances.length}
+              direction="vertical"
+              renderStepIndicator={({ position, stepStatus }) => (
+                <View style={styles.stepIndicator}>
+                  <Text style={styles.stepLabel}>{position + 1}</Text>
+                </View>
+              )}
+            />
+            <View style={styles.stepDetails}>
+              {stopDistances.map((stop, index) => (
+                <View key={index} style={styles.stepDetail}>
+                  <Text>Stop {index + 1}</Text>
                   <Text>Distance: {stop.distance} km</Text>
                   <Text>Duration: {stop.duration}</Text>
                 </View>
-              </ProgressStep>
-            ))}
-          </ProgressSteps>
+              ))}
+            </View>
+          </View>
         </View>
       )}
 
@@ -228,6 +241,32 @@ export default function Mappage() {
   );
 }
 
+const customStyles = {
+  stepIndicatorSize: 30,
+  currentStepIndicatorSize: 32,
+  separatorStrokeWidth: 5,
+  currentStepStrokeWidth: 3,
+  stepStrokeCurrentColor: '#4aae4f',
+  stepStrokeWidth: 3,
+  stepStrokeFinishedColor: '#4aae4f',
+  stepStrokeUnFinishedColor: '#aaaaaa',
+  separatorFinishedColor: '#4aae4f',
+  separatorUnFinishedColor: '#aaaaaa',
+  stepIndicatorFinishedColor: '#4aae4f',
+  stepIndicatorUnFinishedColor: '#ffffff',
+  stepIndicatorCurrentColor: '#ffffff',
+  stepIndicatorLabelFontSize: 13,
+  currentStepIndicatorLabelFontSize: 13,
+  stepIndicatorLabelCurrentColor: '#000000',
+  stepIndicatorLabelFinishedColor: '#ffffff',
+  stepIndicatorLabelUnFinishedColor: '#aaaaaa',
+  labelColor: '#999999',
+  labelSize: 13,
+  currentStepLabelColor: '#4aae4f',
+  stepIndicatorLabelCurrentWidth: 50, // Adjust as needed
+  stepIndicatorLabelFinishedWidth: 30, // Adjust as needed
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -254,18 +293,20 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     backgroundColor: 'white',
-    padding: 35,
+    padding: 20,
     borderRadius: 23,
     maxHeight: 300,
     overflow: 'scroll',
   },
-  verticalProgress: {
-    flexDirection: 'column',
-    flexGrow: 0,
-  },
-  verticalProgressContent: {
+  stepsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  stepDetails: {
+    marginLeft: 10,
+    flex: 1,
+  },
+  stepDetail: {
     marginBottom: 10,
   },
   exitButton: {
@@ -273,12 +314,18 @@ const styles = StyleSheet.create({
     top: 10,
     right: 10,
   },
-  marker: {
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    padding: 5,
-    borderRadius: 5,
+  stepIndicator: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cccccc',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  markerText: {
-    fontWeight: 'bold',
-  },
+  stepLabel: {
+    fontSize: 12,
+    color: '#000000',
+  },
 });

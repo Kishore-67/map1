@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from './config';
 import { ref, onValue } from 'firebase/database';
 import MapViewDirections from 'react-native-maps-directions';
-import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
+import SlidingUpPanel from "rn-sliding-up-panel";
+
+const { height } = Dimensions.get("window");
 
 const StopMarker = ({ coordinate, title, index }) => (
   <Marker
@@ -22,6 +24,7 @@ export default function Mappage() {
   const [showRoute, setShowRoute] = useState(false);
   const [showSlidingWindow, setShowSlidingWindow] = useState(false);
   const [stopDistances, setStopDistances] = useState([]);
+  const _draggedValue = new Animated.Value(180);
 
   useEffect(() => {
     const starCountRef = ref(db, 'main/');
@@ -117,8 +120,84 @@ export default function Mappage() {
     }
   };
 
-  const toggleSlidingWindow = () => {
-    setShowSlidingWindow(!showSlidingWindow);
+  const BottomSheet = ({ visible, onClose, stopDistances }) => {
+    const backgoundOpacity = _draggedValue.interpolate({
+      inputRange: [height - 48, height],
+      outputRange: [1, 0],
+      extrapolate: "clamp"
+    });
+
+    const iconTranslateY = _draggedValue.interpolate({
+      inputRange: [height - 56, height, height + 180 - 64],
+      outputRange: [0, 56, 180 - 32],
+      extrapolate: "clamp"
+    });
+
+    const textTranslateY = _draggedValue.interpolate({
+      inputRange: [height + 180 - 64, height + 180],
+      outputRange: [0, 8],
+      extrapolate: "clamp"
+    });
+
+    const textTranslateX = _draggedValue.interpolate({
+      inputRange: [height + 180 - 64, height + 180],
+      outputRange: [0, -112],
+      extrapolate: "clamp"
+    });
+
+    const textScale = _draggedValue.interpolate({
+      inputRange: [height + 180 - 64, height + 180],
+      outputRange: [1, 0.7],
+      extrapolate: "clamp"
+    });
+
+    return (
+      <SlidingUpPanel
+        ref={c => (this._panel = c)}
+        draggableRange={{ top: height + 180 - 64, bottom: 180 }}
+        animatedValue={_draggedValue}
+        snappingPoints={[360]}
+        height={height + 180}
+        friction={0.5}
+        visible={visible}
+      >
+        <View style={styles.panel}>
+          <Animated.View
+            style={[
+              styles.iconBg,
+              {
+                opacity: backgoundOpacity,
+                transform: [{ translateY: iconTranslateY }]
+              }
+            ]}
+          />
+          <View style={styles.panelHeader}>
+            <Animated.View
+              style={{
+                transform: [
+                  { translateY: textTranslateY },
+                  { translateX: textTranslateX },
+                  { scale: textScale }
+                ]
+              }}
+            >
+              <Text style={styles.textHeader}>Sliding Up Panel</Text>
+            </Animated.View>
+          </View>
+          <View style={styles.container}>
+            {stopDistances.map((stop, index) => (
+              <View key={index} style={styles.stepDetail}>
+                <Text>{stop.name}</Text>
+                <Text>Distance: {stop.distance} km</Text>
+                <Text>Duration: {stop.duration}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </SlidingUpPanel
+
+>
+    );
   };
 
   return (
@@ -160,46 +239,34 @@ export default function Mappage() {
           ))}
         {selectedGPS && markerLocations[selectedGPS] && showRoute && (
           <MapViewDirections
-            origin={{
-              latitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lat),
-              longitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lon),
-            }}
-            waypoints={Object.values(markerLocations[selectedGPS].Destination).map(stop => ({
-              latitude: parseFloat(stop.lat),
-              longitude: parseFloat(stop.lon),
-            }))}
-            destination={{
-              latitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lat),
-              longitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lon),
-            }}
-            apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'}
-            strokeWidth={4}
-            strokeColor="blue"
-            mode={"DRIVING"}
-            precision={'high'}
-            resetOnChange={false}
-            optimizeWaypoints={true}
+          origin={{
+            latitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lat),
+            longitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lon),
+          }}
+          waypoints={Object.values(markerLocations[selectedGPS].Destination).map(stop => ({
+            latitude: parseFloat(stop.lat),
+            longitude: parseFloat(stop.lon),
+          }))}
+          destination={{
+            latitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lat),
+            longitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lon),
+          }}
+          apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'}
+          strokeWidth={4}
+          strokeColor="blue"
+          mode={"DRIVING"}
+          precision={'high'}
+          resetOnChange={false}
+          optimizeWaypoints={true}
           />
         )}
       </MapView>
 
-      {showSlidingWindow && stopDistances.length > 0 && (
-        <View style={styles.slidingWindow}>
-          <TouchableOpacity onPress={toggleSlidingWindow} style={styles.exitButton}>
-            <Ionicons name="close-circle" size={24} color="black" />
-          </TouchableOpacity>
-          <ProgressSteps style={styles.verticalProgress}>
-            {stopDistances.map((stop, index) => (
-              <ProgressStep key={index} label={stop.name}>
-                <View style={styles.verticalProgressContent}>
-                  <Text>Distance: {stop.distance} km</Text>
-                  <Text>Duration: {stop.duration}</Text>
-                </View>
-              </ProgressStep>
-            ))}
-          </ProgressSteps>
-        </View>
-      )}
+      <BottomSheet
+        visible={showSlidingWindow}
+        onClose={() => setShowSlidingWindow(false)}
+        stopDistances={stopDistances}
+      />
 
       <View style={styles.mapTypeContainer}>
         <TouchableOpacity onPress={() => changeMapType('standard')}>
@@ -248,37 +315,34 @@ const styles = StyleSheet.create({
     padding: 8,
     elevation: 4,
   },
-  slidingWindow: {
-    position: 'absolute',
-    bottom: 6,
-    left: 10,
-    right: 10,
-    backgroundColor: 'white',
-    padding: 35,
-    borderRadius: 23,
-    maxHeight: 300,
-    overflow: 'scroll',
+  panel: {
+    flex: 1,
+    backgroundColor: "white",
+    position: "relative"
   },
-  verticalProgress: {
-    flexDirection: 'column',
-    flexGrow: 0,
+  panelHeader: {
+    height: 180,
+    backgroundColor: "#b197fc",
+    justifyContent: "flex-end",
+    padding: 24
   },
-  verticalProgressContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  textHeader: {
+    fontSize: 28,
+    color: "#FFF"
+  },
+  iconBg: {
+    backgroundColor: "#2b8a3e",
+    position: "absolute",
+    top: -24,
+    right: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    zIndex: 1
+  },
+  stepDetail: {
     marginBottom: 10,
   },
-  exitButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-  },
-  marker: {
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    padding: 5,
-    borderRadius: 5,
-  },
-  markerText: {
-    fontWeight: 'bold',
-  },
 });
+
+

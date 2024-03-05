@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from './config';
 import { ref, onValue } from 'firebase/database';
 import MapViewDirections from 'react-native-maps-directions';
-import StepIndicator from 'react-native-step-indicator';
+import SlidingUpPanel from "rn-sliding-up-panel";
+
+const { height } = Dimensions.get("window");
 
 const StopMarker = ({ coordinate, title, index }) => (
   <Marker
@@ -22,6 +24,7 @@ export default function Mappage() {
   const [showRoute, setShowRoute] = useState(false);
   const [showSlidingWindow, setShowSlidingWindow] = useState(false);
   const [stopDistances, setStopDistances] = useState([]);
+  const _draggedValue = new Animated.Value(180);
 
   useEffect(() => {
     const starCountRef = ref(db, 'main/');
@@ -117,8 +120,84 @@ export default function Mappage() {
     }
   };
 
-  const toggleSlidingWindow = () => {
-    setShowSlidingWindow(!showSlidingWindow);
+  const BottomSheet = ({ visible, onClose, stopDistances }) => {
+    const backgoundOpacity = _draggedValue.interpolate({
+      inputRange: [height - 48, height],
+      outputRange: [1, 0],
+      extrapolate: "clamp"
+    });
+
+    const iconTranslateY = _draggedValue.interpolate({
+      inputRange: [height - 56, height, height + 180 - 64],
+      outputRange: [0, 56, 180 - 32],
+      extrapolate: "clamp"
+    });
+
+    const textTranslateY = _draggedValue.interpolate({
+      inputRange: [height + 180 - 64, height + 180],
+      outputRange: [0, 8],
+      extrapolate: "clamp"
+    });
+
+    const textTranslateX = _draggedValue.interpolate({
+      inputRange: [height + 180 - 64, height + 180],
+      outputRange: [0, -112],
+      extrapolate: "clamp"
+    });
+
+    const textScale = _draggedValue.interpolate({
+      inputRange: [height + 180 - 64, height + 180],
+      outputRange: [1, 0.7],
+      extrapolate: "clamp"
+    });
+
+    return (
+      <SlidingUpPanel
+        ref={c => (this._panel = c)}
+        draggableRange={{ top: height + 180 - 64, bottom: 180 }}
+        animatedValue={_draggedValue}
+        snappingPoints={[360]}
+        height={height + 180}
+        friction={0.5}
+        visible={visible}
+      >
+        <View style={styles.panel}>
+          <Animated.View
+            style={[
+              styles.iconBg,
+              {
+                opacity: backgoundOpacity,
+                transform: [{ translateY: iconTranslateY }]
+              }
+            ]}
+          />
+          <View style={styles.panelHeader}>
+            <Animated.View
+              style={{
+                transform: [
+                  { translateY: textTranslateY },
+                  { translateX: textTranslateX },
+                  { scale: textScale }
+                ]
+              }}
+            >
+              <Text style={styles.textHeader}>Sliding Up Panel</Text>
+            </Animated.View>
+          </View>
+          <View style={styles.container}>
+            {stopDistances.map((stop, index) => (
+              <View key={index} style={styles.stepDetail}>
+                <Text>{stop.name}</Text>
+                <Text>Distance: {stop.distance} km</Text>
+                <Text>Duration: {stop.duration}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </SlidingUpPanel
+
+>
+    );
   };
 
   return (
@@ -160,59 +239,34 @@ export default function Mappage() {
           ))}
         {selectedGPS && markerLocations[selectedGPS] && showRoute && (
           <MapViewDirections
-            origin={{
-              latitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lat),
-              longitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lon),
-            }}
-            waypoints={Object.values(markerLocations[selectedGPS].Destination).map(stop => ({
-              latitude: parseFloat(stop.lat),
-              longitude: parseFloat(stop.lon),
-            }))}
-            destination={{
-              latitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lat),
-              longitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lon),
-            }}
-            apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'}
-            strokeWidth={4}
-            strokeColor="blue"
-            mode={"DRIVING"}
-            precision={'high'}
-            resetOnChange={false}
-            optimizeWaypoints={true}
+          origin={{
+            latitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lat),
+            longitude: parseFloat(markerLocations[selectedGPS].Destination.stop1.lon),
+          }}
+          waypoints={Object.values(markerLocations[selectedGPS].Destination).map(stop => ({
+            latitude: parseFloat(stop.lat),
+            longitude: parseFloat(stop.lon),
+          }))}
+          destination={{
+            latitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lat),
+            longitude: parseFloat(Object.values(markerLocations[selectedGPS].Destination)[Object.values(markerLocations[selectedGPS].Destination).length - 1].lon),
+          }}
+          apikey={'AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU'}
+          strokeWidth={4}
+          strokeColor="blue"
+          mode={"DRIVING"}
+          precision={'high'}
+          resetOnChange={false}
+          optimizeWaypoints={true}
           />
         )}
       </MapView>
 
-      {showSlidingWindow && stopDistances.length > 0 && (
-        <View style={styles.slidingWindow}>
-          <TouchableOpacity onPress={toggleSlidingWindow} style={styles.exitButton}>
-            <Ionicons name="close-circle" size={24} color="black" />
-          </TouchableOpacity>
-          <View style={styles.stepsContainer}>
-            <StepIndicator
-              customStyles={customStyles}
-              currentPosition={0}
-              labels={stopDistances.map((stop) => stop.name)}
-              stepCount={stopDistances.length}
-              direction="vertical"
-              renderStepIndicator={({ position, stepStatus }) => (
-                <View style={styles.stepIndicator}>
-                  <Text style={styles.stepLabel}>{position + 1}</Text>
-                </View>
-              )}
-            />
-            <View style={styles.stepDetails}>
-              {stopDistances.map((stop, index) => (
-                <View key={index} style={styles.stepDetail}>
-                  <Text>Stop {index + 1}</Text>
-                  <Text>Distance: {stop.distance} km</Text>
-                  <Text>Duration: {stop.duration}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      )}
+      <BottomSheet
+        visible={showSlidingWindow}
+        onClose={() => setShowSlidingWindow(false)}
+        stopDistances={stopDistances}
+      />
 
       <View style={styles.mapTypeContainer}>
         <TouchableOpacity onPress={() => changeMapType('standard')}>
@@ -241,32 +295,6 @@ export default function Mappage() {
   );
 }
 
-const customStyles = {
-  stepIndicatorSize: 30,
-  currentStepIndicatorSize: 32,
-  separatorStrokeWidth: 5,
-  currentStepStrokeWidth: 3,
-  stepStrokeCurrentColor: '#4aae4f',
-  stepStrokeWidth: 3,
-  stepStrokeFinishedColor: '#4aae4f',
-  stepStrokeUnFinishedColor: '#aaaaaa',
-  separatorFinishedColor: '#4aae4f',
-  separatorUnFinishedColor: '#aaaaaa',
-  stepIndicatorFinishedColor: '#4aae4f',
-  stepIndicatorUnFinishedColor: '#ffffff',
-  stepIndicatorCurrentColor: '#ffffff',
-  stepIndicatorLabelFontSize: 13,
-  currentStepIndicatorLabelFontSize: 13,
-  stepIndicatorLabelCurrentColor: '#000000',
-  stepIndicatorLabelFinishedColor: '#ffffff',
-  stepIndicatorLabelUnFinishedColor: '#aaaaaa',
-  labelColor: '#999999',
-  labelSize: 13,
-  currentStepLabelColor: '#4aae4f',
-  stepIndicatorLabelCurrentWidth: 50, // Adjust as needed
-  stepIndicatorLabelFinishedWidth: 30, // Adjust as needed
-};
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -287,45 +315,34 @@ const styles = StyleSheet.create({
     padding: 8,
     elevation: 4,
   },
-  slidingWindow: {
-    position: 'absolute',
-    bottom: 6,
-    left: 10,
-    right: 10,
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 23,
-    maxHeight: 300,
-    overflow: 'scroll',
-  },
-  stepsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stepDetails: {
-    marginLeft: 10,
+  panel: {
     flex: 1,
+    backgroundColor: "white",
+    position: "relative"
+  },
+  panelHeader: {
+    height: 180,
+    backgroundColor: "#b197fc",
+    justifyContent: "flex-end",
+    padding: 24
+  },
+  textHeader: {
+    fontSize: 28,
+    color: "#FFF"
+  },
+  iconBg: {
+    backgroundColor: "#2b8a3e",
+    position: "absolute",
+    top: -24,
+    right: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    zIndex: 1
   },
   stepDetail: {
     marginBottom: 10,
   },
-  exitButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-  },
-  stepIndicator: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#cccccc',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepLabel: {
-    fontSize: 12,
-    color: '#000000',
-  },
 });
+
+

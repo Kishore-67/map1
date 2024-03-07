@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import StepIndicator from 'react-native-step-indicator';
 
-const VerticalStepIndicator = () => {
+const VerticalStepIndicator = ({ totalStops }) => {
   const [currentPage, setCurrentPage] = useState(0); 
-  const labels = ["Stop 1", "Stop 2", "Stop 3"]; 
+
+  const labels = Array.from({ length: totalStops }, (_, index) => `Stop ${index + 1}`);
+
   const customStyles = {
     stepIndicatorSize: 30,
     currentStepIndicatorSize: 40,
@@ -40,6 +42,7 @@ const VerticalStepIndicator = () => {
       setCurrentPage(currentPage - 1);
     }
   };
+
   return (
     <View style={styles.container}>
       <View style={styles.stepIndicatorContainer}>
@@ -57,7 +60,7 @@ const VerticalStepIndicator = () => {
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={handleBack}>
             <Text>Back</Text>
-          </TouchableOpacity> 
+          </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={handleNext}>
             <Text>Next</Text>
           </TouchableOpacity>

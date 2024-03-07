@@ -1,6 +1,7 @@
 
 // App.js
 import React from 'react';
+import { AppRegistry } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from './Screens/HomeScreen'; // Replace with the actual path

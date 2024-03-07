@@ -27,7 +27,7 @@ export const styles = StyleSheet.create({
     position: 'relative',
   },
   panelHeader: {
-    height: 180,
+    height: 100,
     backgroundColor: "#b197fc",
     justifyContent: "flex-end",
     padding: 24
@@ -36,18 +36,11 @@ export const styles = StyleSheet.create({
     fontSize: 28,
     color: "#FFF"
   },
-  iconBg: {
-    backgroundColor: "#2b8a3e",
-    position: "absolute",
-    top: -24,
-    right: 18,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
+ 
   stepDetail: {
     marginBottom: 10,
   },
+  
   closeButton: {
     position: 'absolute',
     top: 16,

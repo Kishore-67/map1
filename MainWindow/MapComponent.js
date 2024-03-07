@@ -12,6 +12,7 @@ import { MapTypeSelection } from './MapTypeSelection';
 import { getDirections } from './directionsService';
 import VerticalStepIndicator from './VerticalStepIndicator'; // Adjust the import path accordingly
 
+
 const StopMarker = ({ coordinate, title, index }) => (
   <Marker
     coordinate={coordinate}
@@ -27,6 +28,7 @@ export default function Mappage() {
   const [stopDistances, setStopDistances] = useState([]);
   const [totalStops, setTotalStops] = useState(1);
   const _draggedValue = new Animated.Value(180);
+  const [showSlidingWindow, setShowSlidingWindow] = useState(false);
 
   useEffect(() => {
     const starCountRef = ref(db, 'main/');
@@ -50,9 +52,11 @@ export default function Mappage() {
     if (selectedGPS === gpsKey) {
       setSelectedGPS(null);
       setShowRoute(false);
+      setShowSlidingWindow(false);
       setStopDistances([]);
     } else {
       setSelectedGPS(gpsKey);
+      setShowSlidingWindow(true);
       setShowRoute(true);
       await calculateDistances(gpsKey, markerLocations); // Pass markerLocations as an argument
     }
@@ -63,13 +67,11 @@ export default function Mappage() {
       latitude: parseFloat(stop.lat),
       longitude: parseFloat(stop.lon),
     }));
-
     const distances = [];
     for (let i = 0; i < waypoints.length - 1; i++) {
       const start = waypoints[i];
       const end = waypoints[i + 1];
-      const directions = await getDirections(start, end, []);
-
+      const directions = await getDirections(start, end, []); 
       if (directions) {
         distances.push({
           stopIndex: i + 1,
@@ -130,7 +132,7 @@ const BottomSheet = ({ visible, onClose, stopDistances }) => {
         ref={(c) => (this._panel = c)}
         draggableRange={{ top: height + 180 - 64, bottom: 180 }}
         animatedValue={_draggedValue}
-        snappingPoints={[360]}
+        snappingPoints={[420]}
         height={height + 180}
         friction={0.5}
         visible={visible}
@@ -159,7 +161,7 @@ const BottomSheet = ({ visible, onClose, stopDistances }) => {
                 ],
               }}
             >
-              <Text style={styles.textHeader}>Sliding Up Panel</Text>
+              <Text style={styles.textHeader}>STOP DETAILS</Text>
             </Animated.View>
           </View>
           <VerticalStepIndicator totalStops={totalStops}></VerticalStepIndicator>
@@ -239,15 +241,19 @@ const BottomSheet = ({ visible, onClose, stopDistances }) => {
             optimizeWaypoints={true}
           />
         )}
+
       </MapView>
+      {stopDistances && stopDistances.length > 0 && selectedGPS && showSlidingWindow && (
       <BottomSheet
-        visible={selectedGPS !== null && showRoute}
+      visible={showSlidingWindow}
+      onClose={() => setShowSlidingWindow(false)}
         stopDistances={stopDistances}
         totalStops={totalStops}
       />
-      <View style={styles.mapTypeContainer}>
+      )}
+      
       <MapTypeSelection mapType={mapType} changeMapType={changeMapType} />
-      </View>
+      
     </View>
   );
 }

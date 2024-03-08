@@ -37,10 +37,10 @@ const styles = StyleSheet.create({
    
     fontSize: 5,
   },
-  Button:{
-    shape:"rounded-pill",
-    backgroundColor:"white",
-  },
+  // Button:{
+  //   shape:"rounded-pill",
+  //   backgroundColor:"white",
+  // },
  
 });
 

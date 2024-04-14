@@ -69,9 +69,9 @@ export default function Mappage() {
       setSelectedLatitude(latitude);
       setSelectedLongitude(longitude);
       
-      // Log the selected latitude and longitude values
-      console.log('Selected Latitude:', latitude);
-      console.log('Selected Longitude:', longitude);
+      // // Log the selected latitude and longitude values
+      // console.log('Selected Latitude:', latitude);
+      // console.log('Selected Longitude:', longitude);
 
 
     } else {
@@ -80,6 +80,14 @@ export default function Mappage() {
       setShowRoute(true);
       await calculateDistances(gpsKey, markerLocations);       // Pass markerLocations as an argument
       setCurrentStopIndex(0);
+      // Get the selected GPS marker data
+      const selectedGPSData = markerLocations[gpsKey];
+      const latitude = parseFloat(selectedGPSData.latitude);
+      const longitude = parseFloat(selectedGPSData.longitude);  
+      
+      // Update the latitude and longitude state variables with the current GPS marker values
+      setSelectedLatitude(latitude);
+      setSelectedLongitude(longitude);
     }
   };
   const calculateDistances = async (gpsKey) => {
@@ -128,8 +136,8 @@ export default function Mappage() {
           ))
       );
 
-      console.log('stopCoordinates:', uniqueStopCoordinates);
-      console.log('distances:', dist);
+      // console.log('stopCoordinates:', uniqueStopCoordinates);
+      // console.log('distances:', dist);
       setdistance(dist);
 
       setStopDistances(distances);

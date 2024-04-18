@@ -10,6 +10,7 @@ import BottomSheet from './Screens/Screen3';
 import Busstand from './Screens/Busstand';
 import BusTimings from './Screens/BusTimings';
 import Splash from './Screens/splash';
+import Busstop from './Screens/Busstop';
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -22,6 +23,9 @@ const App = () => {
         <Stack.Screen name="Screen3" component={BottomSheet} />
         <Stack.Screen name="Busstand" component={Busstand}/>
         <Stack.Screen name="BusTimings" component={BusTimings}/>
+        <Stack.Screen name="Busstop" component={Busstop}/>
+
+
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -16,6 +16,9 @@ const HomeScreen = () => {
   const navigateToBusstand = ()=>{
     navigation.navigate('Busstand');
   };
+  const navigateToBusstop = ()=>{
+    navigation.navigate('Busstop');
+  };
   
 
   return (
@@ -35,7 +38,10 @@ const HomeScreen = () => {
         </TouchableOpacity>  
         <TouchableOpacity onPress={navigateToBusstand} style={styles.button}>
             <Text style={styles.Text}>Busstand</Text>
-        </TouchableOpacity>  
+        </TouchableOpacity> 
+        <TouchableOpacity onPress={navigateToBusstop} style={styles.button}>
+            <Text style={styles.Text}>Busstop</Text>
+        </TouchableOpacity> 
         </View>
      </View>
 </>

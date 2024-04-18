@@ -18,7 +18,8 @@
       "supportsTablet": true,
       "config": {
         "googleMapsApiKey": "AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU"
-      }
+      },
+      "permissions": ["LOCATION"]
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +31,8 @@
         "googleMaps": {
           "apiKey": "AIzaSyDouSDXuZs-C61VHt6eJiIgP4ndfv41pDU"
         }
-      }
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
